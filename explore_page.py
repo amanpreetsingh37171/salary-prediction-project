@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import plotly.express as px
+import plotly.graph_objects as go
 
 def shorten_categories(categories, cutoff):
     categorical_map = {}
@@ -10,7 +12,6 @@ def shorten_categories(categories, cutoff):
         else:
             categorical_map[idx] = 'Other'
     return categorical_map
-
 
 def clean_experience(x):
     if x == "More than 50 years":
@@ -28,9 +29,9 @@ def clean_education(x):
         return "Post grad"
     return "Less than a Bachelors"
 
+@st.cache_data
 def load_data():
     df = pd.read_csv("survey_results_public.csv")
-
     df=df[["Country","EdLevel","YearsCodePro","Employment","ConvertedComp"]]
     df=df.rename({"ConvertedComp":"Salary"},axis=1)
     df = df[df["Salary"].notnull()]
@@ -50,26 +51,50 @@ def load_data():
     df["EdLevel"]= df["EdLevel"].apply(clean_education)
     return df
 
-
 df = load_data()
-
 
 def show_explore_page():
     st.title("Explore Software Developers Salaries")
 
     st.write(
-        """
-    ### Stack Overflow Developer Survey
-"""
+        """### Stack Overflow Developer Survey"""
     )
+    data = df["Country"].value_counts().reset_index()
+    data.columns = ['Country', 'Count']
 
-    data = df["Country"].value_counts()
+    # Pie chart with Plotly
+    fig1 = px.pie(data, names='Country', values='Count', title='Number of Data from Different Countries',
+                  color_discrete_sequence=px.colors.sequential.RdBu, hole=0.3)
+
+    fig1.update_traces(textinfo='percent+label')
+
+    st.plotly_chart(fig1)
+
+    # Experience vs Salary interactive scatter plot
+    fig2 = px.scatter(df, x='YearsCodePro', y='Salary', color='Country',
+                      title='Years of Experience vs. Salary',
+                      labels={'YearsCodePro': 'Years of Experience', 'Salary': 'Salary'},
+                      hover_data=['EdLevel'])
+
+    st.plotly_chart(fig2)
+
+    # Salary distribution by Education Level
+    fig3 = px.box(df, x='EdLevel', y='Salary', color='EdLevel', title='Salary Distribution by Education Level',
+                  labels={'EdLevel': 'Education Level', 'Salary': 'Salary'})
+
+    st.plotly_chart(fig3)
 
 
-    fig1, ax1 = plt.subplots()
-    ax1.pie(data, labels=data.index, autopct="%1.1f%%", startangle=90)
-    ax1.axis("Equal")
 
-    st.write("""#### Number of Data from different countries""")
 
-    st.pyplot(fig1)
+
+    # data = df["Country"].value_counts()
+
+
+    # fig1, ax1 = plt.subplots()
+    # ax1.pie(data, labels=data.index, autopct="%1.1f%%", startangle=90)
+    # ax1.axis("Equal")
+
+    # st.write("""#### Number of Data from different countries""")
+
+    # st.pyplot(fig1)
